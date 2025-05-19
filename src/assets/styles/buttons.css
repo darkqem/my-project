@@ -1,0 +1,124 @@
+:root {
+    /* Primary colors */
+    --primary-color: #4CAF50;
+    --primary-hover: #45a049;
+    
+    /* Secondary colors */
+    --secondary-color: #4CAF50;
+    --secondary-hover: #45a049;
+    
+    /* Danger colors */
+    --danger-color: #f44336;
+    --danger-hover: #da190b;
+    
+    /* Disabled state */
+    --disabled-bg: #cccccc;
+    --disabled-text: #666666;
+    
+    /* Common */
+    --white: #ffffff;
+}
+
+/* Base button styles */
+button:not(.logout-btn-top):not(.toggle-sidebar-btn-mobile) {
+    margin-right: 10px;
+    padding: 8px 16px;
+    color: var(--white);
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    font-size: 14px;
+    background-color: var(--primary-color);
+}
+
+/* Hover state - only when not disabled */
+button:not(.logout-btn-top):not(.toggle-sidebar-btn-mobile):hover:not(:disabled) {
+    background-color: var(--primary-hover);
+}
+
+/* Disabled state */
+button:not(.logout-btn-top):not(.toggle-sidebar-btn-mobile):disabled {
+    background-color: var(--disabled-bg) !important;
+    color: var(--disabled-text) !important;
+    cursor: not-allowed !important;
+}
+
+/* Navigation buttons container */
+.navigation-buttons {
+    margin-top: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+    padding: 0 20px;
+}
+
+/* Action buttons container */
+.buttons {
+    margin-top: 20px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+/* Save/Submit buttons */
+button[type="submit"],
+button[type="button"]:first-child {
+    background-color: var(--secondary-color);
+}
+
+button[type="submit"]:hover:not(:disabled),
+button[type="button"]:first-child:hover:not(:disabled) {
+    background-color: var(--secondary-hover);
+}
+
+/* Cancel/Delete buttons */
+button[type="button"]:last-child {
+    background-color: var(--danger-color);
+}
+
+button[type="button"]:last-child:hover:not(:disabled) {
+    background-color: var(--danger-hover);
+}
+
+/* Медиа-запросы для мобильных устройств */
+@media (max-width: 768px) {
+    /* Добавляем отступ сверху, чтобы избежать перекрытия с кнопкой меню */
+    .client-details, .driver-details, .repair-details,
+    .trip-details, .passenger-details, .car-details,
+    .employee-details, .supplier-details {
+        margin-top: 50px;
+    }
+    
+    /* Улучшаем отображение кнопок */
+    .navigation-buttons, .buttons {
+        flex-direction: row;
+        width: 100%;
+    }
+    
+    button:not(.logout-btn-top):not(.toggle-sidebar-btn-mobile) {
+        flex: 1;
+        min-width: 0;
+        margin-right: 5px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        padding: 8px;
+    }
+}
+
+@media (max-width: 480px) {
+    .navigation-buttons, .buttons {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    button:not(.logout-btn-top):not(.toggle-sidebar-btn-mobile) {
+        width: 100%;
+        margin-right: 0;
+        margin-bottom: 0;
+    }
+}

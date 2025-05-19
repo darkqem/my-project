@@ -1,0 +1,425 @@
+<template>
+  <div class="trip-page">
+    <!-- Current Trip Form -->
+    <div v-if="trip" class="trip-details">
+      <h2>Информация о поездке</h2>
+      <div class="form-group">
+        <label>Код поездки:</label>
+        <input type="text" v-model="trip.id" disabled />
+      </div>
+      <div class="form-group">
+        <label>Статус поездки:</label>
+        <select v-model="trip.trip_status">
+          <option value="Завершена">Завершена</option>
+          <option value="В процессе">В процессе</option>
+          <option value="Отменена">Отменена</option>
+          <option value="Запланирована">Запланирована</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Точка отправления:</label>
+        <input type="text" v-model="trip.departure_point" />
+      </div>
+      <div class="form-group">
+        <label>Точка прибытия:</label>
+        <input type="text" v-model="trip.arrival_point" />
+      </div>
+      <div class="form-group">
+        <label>Дата и время начала:</label>
+        <input type="datetime-local" v-model="formattedStartDateTime" />
+      </div>
+      <div class="form-group">
+        <label>Дата и время окончания:</label>
+        <input type="datetime-local" v-model="formattedEndDateTime" />
+      </div>
+      <div class="form-group">
+        <label>Стоимость поездки (руб.):</label>
+        <input type="number" v-model="trip.trip_cost" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>ID сотрудника:</label>
+        <input type="number" v-model="trip.employee_id" />
+      </div>
+      <div class="form-group">
+        <label>Сотрудник:</label>
+        <select v-model="trip.employee_id">
+          <option v-for="employee in employees" :key="employee.id" :value="employee.id">
+            {{ formatEmployeeName(employee) }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>ID водителя:</label>
+        <input type="number" v-model="trip.driver_id" />
+      </div>
+      <div class="form-group">
+        <label>Водитель:</label>
+        <select v-model="trip.driver_id">
+          <option v-for="driver in drivers" :key="driver.id" :value="driver.id">
+            {{ `${driver.last_name} ${driver.first_name} ${driver.middle_name}` }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Комиссия (руб.):</label>
+        <input type="number" v-model="trip.commission" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Дата сбора комиссии:</label>
+        <input type="datetime-local" v-model="formattedCommissionDate" />
+      </div>
+      
+      
+      
+      <div class="buttons">
+        <button @click="updateTrip">Сохранить</button>
+        <button @click="deleteTrip" type="button">Удалить</button>
+      </div>
+    </div>
+
+    <div v-else>
+      <p>Загрузка...</p>
+    </div>
+
+    <!-- Navigation Buttons -->
+    <div class="navigation-buttons">
+      <button :disabled="tripId <= 1" @click="goToPrevious">Предыдущий</button>
+      <button @click="goToNext">Следующий</button>
+      <button @click="toggleAddForm">{{ showAddForm ? 'Скрыть форму' : 'Добавить новую' }}</button>
+    </div>
+
+    <!-- Add New Trip Form -->
+    <div v-if="showAddForm" class="trip-details add-form">
+      <h2>Добавить новую поездку</h2>
+      <div class="form-group">
+        <label>ID (авто):</label>
+        <input type="text" v-model="newTrip.id" disabled />
+      </div>
+      <div class="form-group">
+        <label>Статус поездки:</label>
+        <select v-model="newTrip.trip_status">
+          <option value="Запланирована">Запланирована</option>
+          <option value="В процессе">В процессе</option>
+          <option value="Завершена">Завершена</option>
+          <option value="Отменена">Отменена</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Точка отправления:</label>
+        <input type="text" v-model="newTrip.departure_point" />
+      </div>
+      <div class="form-group">
+        <label>Точка прибытия:</label>
+        <input type="text" v-model="newTrip.arrival_point" />
+      </div>
+      <div class="form-group">
+        <label>Дата и время начала:</label>
+        <input type="datetime-local" v-model="newTrip.start_datetime" />
+      </div>
+      <div class="form-group">
+        <label>Дата и время окончания:</label>
+        <input type="datetime-local" v-model="newTrip.end_datetime" />
+      </div>
+      <div class="form-group">
+        <label>Стоимость поездки (руб.):</label>
+        <input type="number" v-model="newTrip.trip_cost" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>ID сотрудника:</label>
+        <input type="number" v-model="newTrip.employee_id" />
+      </div>
+      <div class="form-group">
+        <label>ID водителя:</label>
+        <input type="number" v-model="newTrip.driver_id" />
+      </div>
+      <div class="form-group">
+        <label>Комиссия (руб.):</label>
+        <input type="number" v-model="newTrip.commission" step="0.01" />
+      </div>
+      <div class="form-group">
+        <label>Дата сбора комиссии:</label>
+        <input type="datetime-local" v-model="newTrip.commission_collection_date" />
+      </div>
+      <div class="buttons">
+        <button @click="addNewTrip">Сохранить</button>
+        <button @click="toggleAddForm">Отмена</button>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import axios from 'axios';
+import '@/assets/styles/buttons.css';
+
+export default {
+  data() {
+    return {
+      tripId: 1,
+      trip: null,
+      showAddForm: false,
+      drivers: [],
+      employees: [],
+      
+      tripsData: {},
+      newTrip: {
+        id: null,
+        trip_status: 'Запланирована',
+        departure_point: '',
+        arrival_point: '',
+        start_datetime: '',
+        end_datetime: '',
+        trip_cost: '',
+        employee_id: '',
+        driver_id: '',
+        commission: '',
+        commission_collection_date: '',
+        tripPassengers: [],
+        allPassengers: [],
+        selectedPassengerId: '',
+      }
+    };
+  },
+
+  computed: {
+    formattedStartDateTime: {
+      get() {
+        if (!this.trip || !this.trip.start_datetime) return '';
+        return this.formatDateTimeForInput(this.trip.start_datetime);
+      },
+      set(value) {
+        if (this.trip) {
+          this.trip.start_datetime = value ? new Date(value).toISOString() : null;
+        }
+      }
+    },
+    formattedEndDateTime: {
+      get() {
+        if (!this.trip || !this.trip.end_datetime) return '';
+        return this.formatDateTimeForInput(this.trip.end_datetime);
+      },
+      set(value) {
+        if (this.trip) {
+          this.trip.end_datetime = value ? new Date(value).toISOString() : null;
+        }
+      }
+    },
+    formattedCommissionDate: {
+      get() {
+        if (!this.trip || !this.trip.commission_collection_date) return '';
+        return this.formatDateTimeForInput(this.trip.commission_collection_date);
+      },
+      set(value) {
+        if (this.trip) {
+          this.trip.commission_collection_date = value ? new Date(value).toISOString() : null;
+        }
+      }
+    },
+    currentDriverName() {
+      if (!this.trip || !this.drivers.length) return '';
+      const driver = this.drivers.find(d => d.id === this.trip.driver_id);
+      if (!driver) return 'Водитель не найден';
+      return `${driver.last_name} ${driver.first_name} ${driver.middle_name}`;
+    },
+    
+  },
+  async created() {
+    await Promise.all([
+      this.fetchDrivers(),
+      this.fetchEmployees(),
+      
+    ]);
+    await this.fetchTripData(this.tripId);
+  },
+
+  methods: {
+    formatEmployeeName(employee) {
+      if (!employee) return '';
+      return `${employee.last_name} ${employee.first_name} ${employee.middle_name}`.trim();
+    },
+    async fetchEmployees() {
+      try {
+        const res = await axios.get('http://localhost:5000/api/employees');
+        this.employees = res.data || [];
+      } catch (err) {
+        console.error('Ошибка загрузки сотрудников:', err);
+        this.employees = [];
+      }
+    },
+    async deleteTrip() {
+      if (confirm('Вы уверены, что хотите удалить эту поездку?')) {
+        try {
+          await axios.delete(`http://localhost:5000/api/trips/${this.trip.id}`);
+          alert('Поездка удалена!');
+          this.goToNext(); // Переходим к следующей записи после удаления
+        } catch (err) {
+          console.error('Ошибка удаления:', err);
+          alert('Не удалось удалить поездку');
+        }
+      }
+    },
+    formatDateTimeForInput(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+    },
+    async fetchTripData(id) {
+      try {
+        if (!this.tripsData[id]) {
+          const res = await axios.get(`http://localhost:5000/api/trips/${id}`);
+          this.tripsData[id] = res.data;
+        }
+        this.trip = this.tripsData[id];
+        this.tripId = id;
+        if (this.drivers.length === 0) {
+          await this.fetchDrivers();
+        }
+      } catch (err) {
+        console.error('Ошибка загрузки поездки:', err);
+        this.trip = null;
+      }
+    },
+    async updateTrip() {
+      try {
+        await axios.put(`http://localhost:5000/api/trips/${this.trip.id}`, this.trip);
+        alert('Данные обновлены!');
+      } catch (err) {
+        console.error('Ошибка обновления:', err);
+        alert('Не удалось обновить данные');
+      }
+    },
+    goToNext() {
+      this.fetchTripData(this.tripId + 1);
+    },
+    goToPrevious() {
+      if (this.tripId > 1) this.fetchTripData(this.tripId - 1);
+    },
+    toggleAddForm() {
+      this.showAddForm = !this.showAddForm;
+      if (this.showAddForm) {
+        this.prepareNewTrip();
+      }
+    },
+    async prepareNewTrip() {
+      try {
+        const res = await axios.get(`http://localhost:5000/api/count/trips`);
+        const maxId = Number(res.data.maxId);
+        this.newTrip = {
+          id: maxId,
+          trip_status: 'Запланирована',
+          departure_point: '',
+          arrival_point: '',
+          start_datetime: '',
+          end_datetime: '',
+          trip_cost: '',
+          employee_id: '',
+          driver_id: '',
+          commission: '',
+          commission_collection_date: ''
+        };
+      } catch (err) {
+        console.error('Ошибка при получении количества записей:', err);
+      }
+    },
+    async addNewTrip() {
+      try {
+        await axios.post(`http://localhost:5000/api/trips`, this.newTrip);
+        alert('Поездка добавлена!');
+        this.showAddForm = false;
+        this.fetchTripData(this.tripId);
+      } catch (err) {
+        console.error('Ошибка при добавлении поездки:', err);
+        alert('Не удалось добавить поездку');
+      }
+    },
+    async fetchDrivers() {
+      try {
+        const res = await axios.get('http://localhost:5000/api/drivers');
+        this.drivers = res.data;
+      } catch (err) {
+        console.error('Ошибка загрузки водителей:', err);
+      }
+    },
+    
+    
+
+    
+
+    
+
+
+    
+  }
+};
+
+</script>
+
+<style scoped>
+.trip-details {
+  background-color: #ffffff;
+  border-radius: 4px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-group input,
+.form-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+  border-color: #4CAF50;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+
+.form-group input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+}
+
+.add-form {
+  margin-top: 20px;
+  background-color: #f9f9f9;
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 1.5em;
+}
+
+.form-group select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+  transition: border-color 0.3s ease;
+}
+
+.form-group select:focus {
+  border-color: #4CAF50;
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.1);
+}
+</style>
